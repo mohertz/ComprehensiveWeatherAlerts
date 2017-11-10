@@ -28,9 +28,10 @@ def newUserSetup():
     cur = conn.cursor()
     cur.execute("SELECT id FROM Users WHERE email_to LIKE :email",{"email": user_email})
     if cur.fetchone() is None or len(cur.fetchone()) == 0:
-        cur.execute("""INSERT OR IGNORE INTO Users (email_to, email_type, locations, time, alerts, forecast_days, tz)
+        cur.execute("""INSERT INTO Users (email_to, email_type, locations, time, alerts, forecast_days, tz)
                         VALUES (:email,:type,:loc,:time,:alerts,:days,:tz)""",
                     {"email": user_email,"type": email_type, "loc": locations, "time": time, "alerts": alerts,"days": forecast_days, "tz": tz})
+        conn.commit()
     else:
         user_id = cur.fetchone()
         print("User already exists.")

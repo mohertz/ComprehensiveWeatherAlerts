@@ -34,7 +34,7 @@ class Person:
 
     def addEmailTo(self):
         cur = conn.cursor()
-        cur.execute("SELECT email_to FROM Users WHERE id = :id",{"id": self.user_id})
+        cur.execute("SELECT email_to FROM Users WHERE id = ?",(self.user_id))
         try:
             email_str = cur.fetchone()[0]
         except:
@@ -49,7 +49,7 @@ class Person:
 
     def addEmailType(self):
         cur = conn.cursor()
-        cur.execute("SELECT email_type FROM Users WHERE id = :id",{"id": self.user_id})
+        cur.execute("SELECT email_type FROM Users WHERE id = ?",(self.user_id))
         try:
             self.email_type = cur.fetchone()[0]
         except:
@@ -58,7 +58,7 @@ class Person:
 
     def addLocations(self):
         cur = conn.cursor()
-        cur.execute("SELECT locations FROM Users WHERE id = :id",{"id": self.user_id})
+        cur.execute("SELECT locations FROM Users WHERE id = ?",(self.user_id))
         try:
             locations_str = cur.fetchone()[0]
         except:
@@ -73,15 +73,21 @@ class Person:
 
     def adjustHours(self):
         cur = conn.cursor()
-        cur.execute("SELECT time FROM Users WHERE id = :id",{"id": self.user_id})
+        cur.execute("SELECT time FROM Users WHERE id = ?",(self.user_id))
         try:
             time_str = cur.fetchone()[0]
         except:
             quit()
         try:
             time_list = time_str.split(",")
-            self.hours["Start"] = time_list[0]
-            self.hours["End"] = time_list[1]
+            if len(time_list[0]) > 0:
+                self.hours["Start"] = time_list[0]
+            else:
+                pass
+            if len(time_list[1]) > 0:
+                self.hours["End"] = time_list[1]
+            else:
+                pass
         except:
             pass
         if len(self.hours["Start"]) == 2:
@@ -92,7 +98,7 @@ class Person:
 
     def setAlerts(self):
         cur = conn.cursor()
-        cur.execute("SELECT alerts FROM Users WHERE id = :id",{"id": self.user_id})
+        cur.execute("SELECT alerts FROM Users WHERE id = ?",(self.user_id))
         try:
             alerts_str = cur.fetchone()[0]
         except:
@@ -113,7 +119,7 @@ class Person:
 
     def setDays(self):
         cur = conn.cursor()
-        cur.execute("SELECT forecast_days FROM Users WHERE id = :id",{"id": self.user_id})
+        cur.execute("SELECT forecast_days FROM Users WHERE id = ?",(self.user_id))
         try:
             self.forecast_days = int(cur.fetchone()[0])
         except:
@@ -124,7 +130,7 @@ class Person:
 
     def setTZ(self):
         cur = conn.cursor()
-        cur.execute("SELECT tz FROM Users WHERE id = :id",{"id": self.user_id})
+        cur.execute("SELECT tz FROM Users WHERE id = ?",(self.user_id))
         try:
             tz = cur.fetchone()[0]
         except:

@@ -92,8 +92,12 @@ class Person:
             pass
         if len(self.hours["Start"]) == 2:
             self.hours["Start"] = self.hours["Start"]+":00"
+        elif len(self.hours["Start"]) == 1:
+            self.hours["Start"] = "0"+self.hours["Start"]+":00"
         if len(self.hours["End"]) == 2:
             self.hours["End"] = self.hours["End"]+":00"
+        elif len(self.hours["End"]) == 1:
+            self.hours["End"] = "0"+self.hours["End"]+":00"
         cur.close()
 
     def setAlerts(self):

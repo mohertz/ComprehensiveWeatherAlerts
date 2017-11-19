@@ -29,12 +29,16 @@ class Person:
         self.alerts = []
         self.forecast_days = None
         self.forecast = {}
-        self.email_subj = None
+        self.email_subj = "Upcoming Forecast"
         self.email_body = None
+        self.freezing = False
+        self.rain = False
+        self.snow = False
+        self.extreme = False
 
     def addEmailTo(self):
         cur = conn.cursor()
-        cur.execute("SELECT email_to FROM Users WHERE id = ?",(self.user_id))
+        cur.execute("SELECT email_to FROM Users WHERE id = :id",{"id": self.user_id})
         try:
             email_str = cur.fetchone()[0]
         except:
@@ -49,7 +53,7 @@ class Person:
 
     def addEmailType(self):
         cur = conn.cursor()
-        cur.execute("SELECT email_type FROM Users WHERE id = ?",(self.user_id))
+        cur.execute("SELECT email_type FROM Users WHERE id = :id",{"id": self.user_id})
         try:
             self.email_type = cur.fetchone()[0]
         except:
@@ -58,7 +62,7 @@ class Person:
 
     def addLocations(self):
         cur = conn.cursor()
-        cur.execute("SELECT locations FROM Users WHERE id = ?",(self.user_id))
+        cur.execute("SELECT locations FROM Users WHERE id = :id",{"id": self.user_id})
         try:
             locations_str = cur.fetchone()[0]
         except:
@@ -73,7 +77,7 @@ class Person:
 
     def adjustHours(self):
         cur = conn.cursor()
-        cur.execute("SELECT time FROM Users WHERE id = ?",(self.user_id))
+        cur.execute("SELECT time FROM Users WHERE id = :id",{"id": self.user_id})
         try:
             time_str = cur.fetchone()[0]
         except:
@@ -102,7 +106,7 @@ class Person:
 
     def setAlerts(self):
         cur = conn.cursor()
-        cur.execute("SELECT alerts FROM Users WHERE id = ?",(self.user_id))
+        cur.execute("SELECT alerts FROM Users WHERE id = :id",{"id": self.user_id})
         try:
             alerts_str = cur.fetchone()[0]
         except:
@@ -123,7 +127,7 @@ class Person:
 
     def setDays(self):
         cur = conn.cursor()
-        cur.execute("SELECT forecast_days FROM Users WHERE id = ?",(self.user_id))
+        cur.execute("SELECT forecast_days FROM Users WHERE id = :id",{"id": self.user_id})
         try:
             self.forecast_days = int(cur.fetchone()[0])
         except:
@@ -134,7 +138,7 @@ class Person:
 
     def setTZ(self):
         cur = conn.cursor()
-        cur.execute("SELECT tz FROM Users WHERE id = ?",(self.user_id))
+        cur.execute("SELECT tz FROM Users WHERE id = :id",{"id": self.user_id})
         try:
             tz = cur.fetchone()[0]
         except:
@@ -164,34 +168,88 @@ class Person:
             locName = fData.location
         cur.close()
 
+        d = 0
         for daytime in fData.parsed_forecast:
             UTCdt = datetime.datetime.utcfromtimestamp(daytime).replace(tzinfo=pytz.utc)
             forecastDayTime = UTCdt.astimezone(self.tz)
-            forecastDayTimeStr = forecastDayTime.strftime("%Y-%m-%d %H:%M")
             forecastDay = forecastDayTime.strftime("%Y-%m-%d")
             forecastTime = forecastDayTime.strftime("%H:%M")
             if forecastTime < self.hours["Start"] or forecastTime > self.hours["End"]:
                 continue
             else:
                 if forecastDay not in self.forecast:
-                    self.forecast[forecastDay] = {locName: {"Low": fData.parsed_forecast[daytime]["Low"], "High": fData.parsed_forecast[daytime]["High"], "CondCode": [], "Cond": [], "Conditions": []}}
-                    self.forecast[forecastDay][locName]["CondCode"].append((forecastTime, fData.parsed_forecast[daytime]["CondCode"]))
-                    self.forecast[forecastDay][locName]["Cond"].append((forecastTime, fData.parsed_forecast[daytime]["Cond"]))
-                    self.forecast[forecastDay][locName]["Conditions"].append((forecastTime, fData.parsed_forecast[daytime]["Conditions"]))
+
+                    # below checks to see how many days are in the forecast and ends if it's surpassed user's preference
+                    # since it would be foolish to send an email with an alert for a day they don't want to know about yet
+                    d += 1
+                    if d > self.forecast_days:
+                        break
+
+                    else:
+                        self.forecast[forecastDay] = {locName: {"Low": fData.parsed_forecast[daytime]["Low"], "High": fData.parsed_forecast[daytime]["High"], "CondCode": [], "Cond": [], "Conditions": []}}
+                        self.forecast[forecastDay][locName]["CondCode"].append((forecastTime, fData.parsed_forecast[daytime]["CondCode"]))
+                        self.forecast[forecastDay][locName]["Cond"].append((forecastTime, fData.parsed_forecast[daytime]["Cond"]))
+                        self.forecast[forecastDay][locName]["Conditions"].append((forecastTime, fData.parsed_forecast[daytime]["Conditions"]))
+
                 else:
                     condCodeLast = len(self.forecast[forecastDay][locName]["CondCode"])-1
                     condLast = len(self.forecast[forecastDay][locName]["Cond"])-1
                     condDescLast = len(self.forecast[forecastDay][locName]["Conditions"])-1
+
                     if fData.parsed_forecast[daytime]["Low"] < self.forecast[forecastDay][locName]["Low"]:
                         self.forecast[forecastDay][locName]["Low"] = fData.parsed_forecast[daytime]["Low"]
+                        # below checks for freezing temps
+                        if fData.parsed_forecast[daytime]["Low"] < self.freezingThresh and self.freezing == False:
+                            self.freezing = True
+
                     if fData.parsed_forecast[daytime]["High"] > self.forecast[forecastDay][locName]["High"]:
                         self.forecast[forecastDay][locName]["High"] = fData.parsed_forecast[daytime]["High"]
+
                     if fData.parsed_forecast[daytime]["CondCode"] != self.forecast[forecastDay][locName]["CondCode"][condCodeLast][1]:
                         self.forecast[forecastDay][locName]["CondCode"].append((forecastTime, fData.parsed_forecast[daytime]["CondCode"]))
+
+                        # below checks for extreme weather, rain, and snow
+                        if fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.AllExtreme:
+                            self.extreme = True
+                        elif fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.AllRain:
+                            self.rain = True
+                        elif fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.Snow:
+                            self.snow = True
+
                     if fData.parsed_forecast[daytime]["Cond"] != self.forecast[forecastDay][locName]["Cond"][condLast][1]:
                         self.forecast[forecastDay][locName]["Cond"].append((forecastTime, fData.parsed_forecast[daytime]["Cond"]))
                     if fData.parsed_forecast[daytime]["Conditions"] != self.forecast[forecastDay][locName]["Conditions"][condDescLast][1]:
                         self.forecast[forecastDay][locName]["Conditions"].append((forecastTime, fData.parsed_forecast[daytime]["Conditions"]))
+
+    def composeEmail(self):
+        self.email_body = ""
+        for d in self.forecast:
+            self.email_body = self.email_body + d + "\r\n"
+            for l in self.forecast[d]:
+                self.email_body = self.email_body + "==" + l + "==\r\n"
+                for item in self.forecast[d][l]:
+                    if item == "CondCode" or item == "Cond":
+                        continue
+                    elif type(self.forecast[d][l][item]) is list:
+                        self.email_body = self.email_body + "  " + item + ":\r\n"
+                        for i in range(len(self.forecast[d][l][item])):
+                            self.email_body = self.email_body + "   - " + str(self.forecast[d][l][item][i]) + "\r\n"
+                    else:
+                        self.email_body = self.email_body + "  " + item + ": " + str(self.forecast[d][l][item]) + "\r\n"
+            self.email_body = self.email_body + "\r\n"
+        if self.extreme == True:
+            self.email_subj = "EXTREME WEATHER ALERT"
+        if self.snow == True:
+            self.email_subj = self.email_subj + " - SNOW DETECTED"
+        if self.rain == True:
+            self.email_subj = self.email_subj + " - RAIN DETECTED"
+        if self.freezing == True:
+            self.email_subj = self.email_subj + " - FREEZING TEMPS DETECTED"
+
+        cur = conn.cursor()
+        cur.execute("""INSERT INTO EmailArchive (recipient, subj, body, created, status) 
+                    VALUES (:user, :subj, :body, :dayt, :stat)""",
+                    {"user": self.user_id, "subj": self.email_subj, "body": self.email_body, "dayt": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "stat": "pending"})
 
     def dumpForecast(self):
         for d in self.forecast:
@@ -264,7 +322,7 @@ class Forecast:
                 cur.execute("UPDATE ForecastData SET last_update = :update, forecast = :fore WHERE location = :loc",{"update": self.today, "fore": str(self.forecast), "loc": self.location})
                 conn.commit()
             else:
-                cur.execute("INSERT OR IGNORE INTO ForecastData (location, last_update, forecast) VALUES (:loc, :update, :fore)", {"loc": self.location, "update": self.today, "fore": str(self.forecast)})
+                cur.execute("INSERT INTO ForecastData (location, last_update, forecast) VALUES (:loc, :update, :fore)", {"loc": self.location, "update": self.today, "fore": str(self.forecast)})
                 conn.commit()
         cur.close()
 

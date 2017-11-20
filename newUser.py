@@ -9,7 +9,7 @@ conn = sqlite3.connect("data.sqlite3")
 
 def newUserSetup():
     user_email = None
-    while user_email = None:
+    while user_email == None:
         user_email = input("Email address(es):    ")
 
     email_type = input("Email type (SMS/Email):    ")

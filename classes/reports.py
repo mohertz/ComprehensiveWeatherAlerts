@@ -36,54 +36,44 @@ class Person:
         self.snow = False
         self.extreme = False
 
-    def addEmailTo(self):
         cur = conn.cursor()
-        cur.execute("SELECT email_to FROM Users WHERE id = :id",{"id": self.user_id})
+        cur.execute("SELECT * FROM Users WHERE id = :id",{"id": self.user_id})
         try:
-            email_str = cur.fetchone()[0]
+            full = cur.fetchone()
         except:
             quit()
+
+        # populate email address(es) for user
         try:
-            email_list = email_str.split(",")
+            email_list = full[1].split(",")
             for i in email_list:
                 self.EMAIL_TO.append(i)
         except:
-            self.EMAIL_TO.append(email_str)
-        cur.close()
+            if full[1] is not None:
+                self.EMAIL_TO.append(full[1])
+            else:
+                quit()
 
-    def addEmailType(self):
-        cur = conn.cursor()
-        cur.execute("SELECT email_type FROM Users WHERE id = :id",{"id": self.user_id})
-        try:
-            self.email_type = cur.fetchone()[0]
-        except:
+        # populate type of email for user
+        if full[2] is not None:
+            self.email_type = full[2]
+        else:
             self.email_type = "email"
-        cur.close()
 
-    def addLocations(self):
-        cur = conn.cursor()
-        cur.execute("SELECT locations FROM Users WHERE id = :id",{"id": self.user_id})
+        # populate location(s) for user
         try:
-            locations_str = cur.fetchone()[0]
+            locs_list = full[3].split(",")
+            for l in locs_list:
+                self.locations.append(l)
         except:
-            pass
-        try:
-            locations_list = locations_str.split(",")
-            for i in locations_list:
-                self.locations.append(i)
-        except:
-            self.locations.append(locations_str)
-        cur.close()
+            if full[3] is not None:
+                self.locations.append(full[3])
+            else:
+                quit()
 
-    def adjustHours(self):
-        cur = conn.cursor()
-        cur.execute("SELECT time FROM Users WHERE id = :id",{"id": self.user_id})
+        # populate timeframe for user
         try:
-            time_str = cur.fetchone()[0]
-        except:
-            quit()
-        try:
-            time_list = time_str.split(",")
+            time_list = full[4].split(",")
             if len(time_list[0]) > 0:
                 self.hours["Start"] = time_list[0]
             else:
@@ -102,62 +92,43 @@ class Person:
             self.hours["End"] = self.hours["End"]+":00"
         elif len(self.hours["End"]) == 1:
             self.hours["End"] = "0"+self.hours["End"]+":00"
-        cur.close()
 
-    def setAlerts(self):
-        cur = conn.cursor()
-        cur.execute("SELECT alerts FROM Users WHERE id = :id",{"id": self.user_id})
+        # populate alert(s) for user
         try:
-            alerts_str = cur.fetchone()[0]
-        except:
-            pass
-        try:
-            alerts_list = alerts_str.split(",")
-            for i in alerts_list:
+            alerts_list = full[5].split(",")
+            for a in alerts_list:
                 if i in self.possAlerts:
-                    self.alerts.append(i)
+                    self.alerts.append(a)
                 else:
                     continue
         except:
-            if i in self.possAlerts:
-                self.alerts.append(alerts_str)
+            if full[5] is not None and full[5] in self.possAlerts:
+                self.alerts.append(full[5])
             else:
-                pass
-        cur.close()
+                self.alerts = "all"
 
-    def setDays(self):
-        cur = conn.cursor()
-        cur.execute("SELECT forecast_days FROM Users WHERE id = :id",{"id": self.user_id})
-        try:
-            self.forecast_days = int(cur.fetchone()[0])
-        except:
+        # populate days in forecast for user
+        if full[6] is not None and int(full[6]) < 6:
+            self.forecast_days = int(full[6])
+        elif int(full[6]) > 5:
+            self.forecast_days = 5
+        else:
             if self.email_type.lower() == "sms":
                 self.forecast_days = 1
             else:
                 self.forecast_days = 5
-        cur.close()
 
-    def setTZ(self):
-        cur = conn.cursor()
-        cur.execute("SELECT tz FROM Users WHERE id = :id",{"id": self.user_id})
-        try:
-            tz = cur.fetchone()[0]
-        except:
-            quit()
-        if tz in pytz.all_timezones:
-            self.tz = pytz.timezone(tz)
+        # populate timezone for user
+        if full[7] is not None:
+            try:
+                self.tz = pytz.timezone(full[7])
+            except:
+                self.tz = pytz.timezone("UTC")
         else:
-            self.tz = "UTC"
+            self.tz = pytz.timezone("UTC")
+
         cur.close()
 
-    def populatePerson(self):
-        self.addEmailTo()
-        self.addEmailType()
-        self.addLocations()
-        self.adjustHours()
-        self.setAlerts()
-        self.setDays()
-        self.setTZ()
 
     def updateForecast(self,fData):
         # below cursor connection is to pull the human-readable city from the location table
@@ -222,6 +193,7 @@ class Person:
                     if fData.parsed_forecast[daytime]["Conditions"] != self.forecast[forecastDay][locName]["Conditions"][condDescLast][1]:
                         self.forecast[forecastDay][locName]["Conditions"].append((forecastTime, fData.parsed_forecast[daytime]["Conditions"]))
 
+
     def composeEmail(self):
         self.email_body = ""
         for d in self.forecast:
@@ -258,6 +230,7 @@ class Person:
 
         cur.close()
 
+
     def dumpForecast(self):
         for d in self.forecast:
             print(d)
@@ -265,6 +238,7 @@ class Person:
                 print(l)
                 for item in self.forecast[d][l]:
                     print(item, self.forecast[d][l][item])
+
 
 
 class Forecast:

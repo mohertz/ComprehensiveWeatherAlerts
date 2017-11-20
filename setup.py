@@ -4,6 +4,7 @@ import sqlite3
 conn = sqlite3.connect("data.sqlite3")
 cur = conn.cursor()
 
+
 # If you only want to replace one of these tables, remove or comment out the tables you want to keep.
 cur.execute("DROP TABLE IF EXISTS Users")
 cur.execute("DROP TABLE IF EXISTS ForecastData")

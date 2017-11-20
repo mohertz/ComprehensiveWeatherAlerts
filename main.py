@@ -7,19 +7,28 @@ cur = conn.cursor()
 
 
 cur.execute("SELECT id FROM Users")
-for u in cur.fetchall():
-    x = reports.Person(u[0])
-    for l in x.locations:
-        y = reports.Forecast(l)
-        y.checkForecastLocal()
-        y.readForecast()
-        x.updateForecast(y)
-    x.composeEmail()
+while True:
+    u = cur.fetchone()
+    if u is None:
+        break
+    else:
+        x = reports.Person(u[0])
+        for l in x.locations:
+            y = reports.Forecast(l)
+            y.checkForecastLocal()
+            y.readForecast()
+            x.updateForecast(y)
+        x.composeEmail()
+
 
 cur.execute("SELECT id FROM EmailArchive WHERE status = 'pending'")
-for e in cur.fetchall():
-    x = email.Email(e[0])
-    x.send()
+while True:
+    e = cur.fetchone()
+    if e is None:
+        break
+    else:
+        x = email.Email(e[0])
+        x.send()
 
 
 conn.close()

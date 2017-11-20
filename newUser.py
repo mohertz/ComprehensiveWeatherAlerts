@@ -8,27 +8,51 @@ conn = sqlite3.connect("data.sqlite3")
 
 
 def newUserSetup():
-    user_email = input("Email address(es):    ")
+    user_email = None
+    while user_email = None:
+        user_email = input("Email address(es):    ")
+
     email_type = input("Email type (SMS/Email):    ")
-    locations = input("Location(s):    ")
+
+    locations = None
+    while locations is None:
+        locations = input("Location(s):    ")
+
+    timeSt = None
+    timeEnd = None
     while True:
         timeSt = input("Start time:    ")
         timeEnd = input("End time (in 24hr format):    ")
-        if timeSt < timeEnd:
+        if timeSt is not None and timeEnd is not None and timeSt < timeEnd:
+            break
+        elif timeSt is None or timeEnd is None:
             break
         else:
             print("Start time must be before end time.")
+    if timeSt is None and timeEnd is None:
+        time = None
+    else:
+        time = timeSt + "," + timeEnd
+
     alerts = input("Alerts:    ")
+
     while True:
         try:
             forecast_days = int(input("Number of days in forecast (1 to 5):    "))
+            if forecast_days > 5:
+                forecast_days = 5
+            elif forecast_days < 1:
+                forecast_days = 1
+            else:
+                pass
             break
         except:
             print("Must be integer.")
-    tz = input("Timezone:    ")
-    time = timeSt + "," + timeEnd
-    if not tz in pytz.all_timezones:
-        tz = None
+
+    tz = None
+    while tz not in pytz.all_timezones:
+        tz = input("Timezone:    ")
+
 
     cur = conn.cursor()
     cur.execute("SELECT id FROM Users WHERE email_to LIKE :email",{"email": user_email})
@@ -55,6 +79,8 @@ def newUserSetup():
         else:
             pass
         conn.commit()
+
+    cur.close()
 
 
 newUserSetup()

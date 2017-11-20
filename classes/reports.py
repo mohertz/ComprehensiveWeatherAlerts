@@ -1,7 +1,3 @@
-# need to update to pull email type and number of days in forecast
-# if number of days is null, default to full 5 days
-
-
 import pytz
 import sqlite3
 import urllib.request, urllib.parse, urllib.error

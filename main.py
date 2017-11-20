@@ -2,6 +2,7 @@ import sqlite3
 from classes import reports
 from classes import email
 
+
 conn = sqlite3.connect("data.sqlite3")
 cur = conn.cursor()
 

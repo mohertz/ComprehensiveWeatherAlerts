@@ -135,6 +135,7 @@ class Person:
                 self.forecast_days = 1
             else:
                 self.forecast_days = 5
+        cur.close()
 
     def setTZ(self):
         cur = conn.cursor()
@@ -247,9 +248,16 @@ class Person:
             self.email_subj = self.email_subj + " - FREEZING TEMPS DETECTED"
 
         cur = conn.cursor()
-        cur.execute("""INSERT INTO EmailArchive (recipient, subj, body, created, status) 
-                    VALUES (:user, :subj, :body, :dayt, :stat)""",
-                    {"user": self.user_id, "subj": self.email_subj, "body": self.email_body, "dayt": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "stat": "pending"})
+        try:
+            cur.execute("""INSERT INTO EmailArchive (recipient, subj, body, created, status) 
+                        VALUES (:user, :subj, :body, :dayt, :stat)""",
+                        {"user": self.user_id, "subj": self.email_subj, "body": self.email_body, "dayt": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "stat": "pending"})
+            conn.commit()
+            print("email inserted for",self.user_id)
+        except:
+            print("Failed to insert email into table")
+
+        cur.close()
 
     def dumpForecast(self):
         for d in self.forecast:

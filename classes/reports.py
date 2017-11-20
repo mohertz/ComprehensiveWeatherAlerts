@@ -142,7 +142,19 @@ class Person:
             forecastDayTime = UTCdt.astimezone(self.tz)
             forecastDay = forecastDayTime.strftime("%Y-%m-%d")
             forecastTime = forecastDayTime.strftime("%H:%M")
-            if forecastTime < self.hours["Start"] or forecastTime > self.hours["End"]:
+
+            fH = int(forecastTime.split(":")[0])
+
+            st = int(self.hours["Start"].split(":")[0])
+            upper = st - 2
+            if upper < 0:
+                upper = 0
+            end = int(self.hours["End"].split(":")[0])
+            lower = end + 2
+            if lower > 23:
+                lower = 23
+
+            if fH < upper or fH > lower:
                 continue
             else:
                 if forecastDay not in self.forecast:

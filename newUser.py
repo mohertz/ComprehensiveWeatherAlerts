@@ -11,8 +11,13 @@ def newUserSetup():
     user_email = input("Email address(es):    ")
     email_type = input("Email type (SMS/Email):    ")
     locations = input("Location(s):    ")
-    timeSt = input("Start time:    ")
-    timeEnd = input("End time (in 24hr format):    ")
+    while True:
+        timeSt = input("Start time:    ")
+        timeEnd = input("End time (in 24hr format):    ")
+        if timeSt < timeEnd:
+            break
+        else:
+            print("Start time must be before end time.")
     alerts = input("Alerts:    ")
     while True:
         try:

@@ -74,11 +74,11 @@ class Person:
         # populate timeframe for user
         try:
             time_list = full[4].split(",")
-            if len(time_list[0]) > 0:
+            if len(time_list[0]) > 0 and time_list[0] < time_list[1]:
                 self.hours["Start"] = time_list[0]
             else:
                 pass
-            if len(time_list[1]) > 0:
+            if len(time_list[1]) > 0 and time_list[1] > time_list[0]:
                 self.hours["End"] = time_list[1]
             else:
                 pass

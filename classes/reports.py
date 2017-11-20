@@ -253,7 +253,6 @@ class Person:
                         VALUES (:user, :subj, :body, :dayt, :stat)""",
                         {"user": self.user_id, "subj": self.email_subj, "body": self.email_body, "dayt": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "stat": "pending"})
             conn.commit()
-            print("email inserted for",self.user_id)
         except:
             print("Failed to insert email into table")
 

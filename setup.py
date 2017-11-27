@@ -17,7 +17,8 @@ cur.execute("""CREATE TABLE Users (
                 time VARCHAR(15),
                 alerts VARCHAR(125),
                 forecast_days TINY INT,
-                tz VARCHAR(25))""")
+                tz VARCHAR(25),
+                last_update VARCHAR(25))""")
 cur.execute("""CREATE TABLE ForecastData (
                 location VARCHAR(15) PRIMARY KEY UNIQUE,
                 forecast TEXT,

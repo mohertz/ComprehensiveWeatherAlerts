@@ -3,10 +3,12 @@ import sqlite3
 import urllib.request, urllib.parse, urllib.error
 import json
 import datetime
+import logging
 import configInfo
 from classes import possibleConditions
 
 
+logging.basicConfig(filename="weatherlogs.log",format="%(asctime)s | %(filename)s , %(lineno)d| %(levelname)s: %(message)s",level=logging.DEBUG)
 conn = sqlite3.connect("data.sqlite3")
 
 
@@ -31,6 +33,8 @@ class Person:
         self.rain = False
         self.snow = False
         self.extreme = False
+
+        logging.info("Creating person instance: %s" % str(self.user_id))
 
         cur = conn.cursor()
         cur.execute("SELECT * FROM Users WHERE id = :id",{"id": self.user_id})
@@ -127,6 +131,8 @@ class Person:
 
 
     def updateForecast(self,fData):
+        logging.info("Updating forecast: %s for %s" % (str(fData.location),str(self.user_id)))
+
         # below cursor connection is to pull the human-readable city from the location table
         cur = conn.cursor()
         cur.execute("SELECT name FROM Locations WHERE id = :id",{"id": fData.location})
@@ -203,6 +209,8 @@ class Person:
 
 
     def composeEmail(self):
+        logging.info("Composing email for %s" % str(self.user_id))
+
         self.email_body = ""
         for d in self.forecast:
             self.email_body = self.email_body + d + "\r\n"
@@ -264,8 +272,11 @@ class Forecast:
             self.location_type = "zip"
         else:
             self.location_type = "cid"
+        logging.info("Creating forecast instance: %s" % str(self.location))
 
     def checkForecastLocal(self):
+        logging.info("Checking forecast cache for %s" % str(self.location))
+
         cur = conn.cursor()
         cur.execute("SELECT * FROM ForecastData WHERE location = :loc", {"loc": self.location})
         try:
@@ -282,15 +293,20 @@ class Forecast:
             try:
                 self.forecast = json.loads(forecast_data[1])
             except:
+                logging.warning("Cannot load forecast data from database for %s" % str(self.location))
                 self.checkForecastRemote()
         elif forecast_data is None or len(forecast_data) < 1:
             self.inDB = False
+            logging.info("No forecast data found in database for %s" % str(self.location))
             self.checkForecastRemote()
         else:
+            logging.info("No recent forecast data found in database for %s" % str(self.location))
             self.checkForecastRemote()
         cur.close()
 
     def checkForecastRemote(self):
+        logging.info("Looking up forecast for %s" % str(self.location))
+
         cur = conn.cursor()
         if self.location_type == "zip":
             url_loc = "zip=" + self.location
@@ -303,19 +319,24 @@ class Forecast:
         try:
             js = json.loads(data)
         except:
+            logging.warning("Unable to load JSON data for %s" % str(self.location))
             js = None
 
         if js is not None:
             self.forecast = js
             if self.inDB == True:
-                cur.execute("UPDATE ForecastData SET last_update = :update, forecast = :fore WHERE location = :loc",{"update": self.today, "fore": str(self.forecast), "loc": self.location})
+                cur.execute("UPDATE ForecastData SET last_update = :update, forecast = :fore WHERE location = :loc",{"update": self.today, "fore": str(data), "loc": self.location})
                 conn.commit()
+                logging.info("Updated forecast data for %s" % str(self.location))
             else:
-                cur.execute("INSERT INTO ForecastData (location, last_update, forecast) VALUES (:loc, :update, :fore)", {"loc": self.location, "update": self.today, "fore": str(self.forecast)})
+                cur.execute("INSERT INTO ForecastData (location, last_update, forecast) VALUES (:loc, :update, :fore)", {"loc": self.location, "update": self.today, "fore": str(data)})
                 conn.commit()
+                logging.info("Added forecast data for %s to database" % str(self.location))
         cur.close()
 
     def readForecast(self):
+        logging.info("Parsing forecast for %s" % str(self.location))
+
         for item in self.forecast["list"]:
             forecast_daytime = item["dt"]
             projLow = item["main"]["temp_min"]

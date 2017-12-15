@@ -2,8 +2,9 @@
 
 import sqlite3
 import pytz
+import logging
 
-
+logging.basicConfig(filename="weatherlogs.log",format="%(asctime)s | %(filename)s , %(lineno)d| %(levelname)s: %(message)s",level=logging.DEBUG)
 conn = sqlite3.connect("data.sqlite3")
 
 
@@ -55,15 +56,21 @@ def newUserSetup():
 
 
     cur = conn.cursor()
-    cur.execute("SELECT id FROM Users WHERE email_to LIKE :email",{"email": user_email})
+    cur.execute("SELECT * FROM Users WHERE email_to LIKE :email",{"email": user_email})
+    logging.info("Checking for existing users: %s" % user_email)
     if cur.fetchone() is None:
+        logging.info("New User")
         cur.execute("""INSERT INTO Users (email_to, email_type, locations, time, alerts, forecast_days, tz)
                         VALUES (:email,:type,:loc,:time,:alerts,:days,:tz)""",
                     {"email": user_email,"type": email_type, "loc": locations, "time": time, "alerts": alerts,"days": forecast_days, "tz": tz})
         conn.commit()
+        logging.info("Adding user to table.")
     else:
-        user_id = cur.fetchone()
+        logging.info("User Exists")
+        user_id = cur.fetchone()[0]
         print("User already exists.")
+        for i in cur.fetchone():
+            print(i)
         upd = input("Update existing record? (Y/N)    ")
         if upd.lower() == "y" or upd.lower() == "yes":
             cur.execute("""UPDATE Users SET
@@ -75,8 +82,9 @@ def newUserSetup():
                             forecast_days = :days,
                             tz = :tz
                             WHERE id = :id""",
-                        {"email": user_email,"type": email_type, "loc": locations, "time": time, "alerts": alerts,"days": forecast_days, "tz": tz, "id": user_id})
+                        {"email": user_email, "type": email_type, "loc": locations, "time": time, "alerts": alerts,"days": forecast_days, "tz": tz, "id": user_id})
             conn.commit()
+            logging.info("Updating user info.")
         else:
             pass
 

@@ -58,7 +58,8 @@ def newUserSetup():
     cur = conn.cursor()
     cur.execute("SELECT * FROM Users WHERE email_to LIKE :email",{"email": user_email})
     logging.info("Checking for existing users: %s" % user_email)
-    if cur.fetchone() is None:
+    userdata = cur.fetchone()
+    if userdata is None:
         logging.info("New User")
         cur.execute("""INSERT INTO Users (email_to, email_type, locations, time, alerts, forecast_days, tz)
                         VALUES (:email,:type,:loc,:time,:alerts,:days,:tz)""",
@@ -67,9 +68,11 @@ def newUserSetup():
         logging.info("Adding user to table.")
     else:
         logging.info("User Exists")
-        user_id = cur.fetchone()[0]
+
+        print (userdata)
+        user_id = userdata[0]
         print("User already exists.")
-        for i in cur.fetchone():
+        for i in userdata:
             print(i)
         upd = input("Update existing record? (Y/N)    ")
         if upd.lower() == "y" or upd.lower() == "yes":

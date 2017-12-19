@@ -15,7 +15,7 @@ conn = sqlite3.connect("data.sqlite3")
 class Person:
 
     freezingThresh = 33
-    possAlerts = ["Freezing","Projected Lows","Projected Highs","Rain","Snow"]
+    possAlerts = ["FREEZING","PROJECTED LOWS","PROJECTED HIGHS","RAIN","SNOW","FULL DETAILS"]
 
     def __init__(self,user_id):
         self.user_id = user_id
@@ -97,22 +97,32 @@ class Person:
         try:
             alerts_list = full[5].split(",")
             for a in alerts_list:
-                if i in self.possAlerts:
-                    self.alerts.append(a)
+                if a.upper() in self.possAlerts:
+                    self.alerts.append(a.upper)
+                    logging.info("Alert in list: %s" % a)
                 else:
+                    logging.warning("Alert not in list: %s" % a)
                     continue
         except:
             if full[5] is not None and full[5] in self.possAlerts:
                 self.alerts.append(full[5])
+                logging.info("Only one alert and in list: %s" % full[5])
             else:
                 self.alerts = "all"
+                logging.info("No alerts in list. Adding all.")
+
+        if self.alerts == "all" or "FULL DETAILS" in self.alerts or self.alerts is None or len(self.alerts) < 1:
+            self.alerts = self.possAlerts
+            logging.info("Populating all alerts.")
 
         # populate days in forecast for user
         if full[6] is not None and int(full[6]) < 6:
             self.forecast_days = int(full[6])
         elif int(full[6]) > 5:
+            logging.warning("Number of days over 5 for user %s" % str(self.user_id))
             self.forecast_days = 5
         else:
+            logging.warning("Number of days not set for user %s" % str(self.user_id))
             if self.email_type.lower() == "sms":
                 self.forecast_days = 1
             else:
@@ -142,8 +152,18 @@ class Person:
             locName = fData.location
         cur.close()
 
+        st = int(self.hours["Start"].split(":")[0])
+        upper = st - 2
+        if upper < 0:
+            upper = 0
+        end = int(self.hours["End"].split(":")[0])
+        lower = end + 2
+        if lower > 23:
+            lower = 23
+
         d = 0
         for daytime in fData.parsed_forecast:
+            condAdd = False
             UTCdt = datetime.datetime.utcfromtimestamp(daytime).replace(tzinfo=pytz.utc)
             forecastDayTime = UTCdt.astimezone(self.tz)
             forecastDay = forecastDayTime.strftime("%Y-%m-%d")
@@ -151,17 +171,10 @@ class Person:
 
             fH = int(forecastTime.split(":")[0])
 
-            st = int(self.hours["Start"].split(":")[0])
-            upper = st - 2
-            if upper < 0:
-                upper = 0
-            end = int(self.hours["End"].split(":")[0])
-            lower = end + 2
-            if lower > 23:
-                lower = 23
-
+            # checking that forecast time is within user's preference
             if fH < upper or fH > lower:
                 continue
+
             else:
                 if forecastDay not in self.forecast:
 
@@ -172,39 +185,67 @@ class Person:
                         break
 
                     else:
-                        self.forecast[forecastDay] = {locName: {"Low": fData.parsed_forecast[daytime]["Low"], "High": fData.parsed_forecast[daytime]["High"], "CondCode": [], "Cond": [], "Conditions": []}}
-                        self.forecast[forecastDay][locName]["CondCode"].append((forecastTime, fData.parsed_forecast[daytime]["CondCode"]))
-                        self.forecast[forecastDay][locName]["Cond"].append((forecastTime, fData.parsed_forecast[daytime]["Cond"]))
-                        self.forecast[forecastDay][locName]["Conditions"].append((forecastTime, fData.parsed_forecast[daytime]["Conditions"]))
+                        if fH < 12:
+                            self.forecast[forecastDay] = {locName: {"AM Low": fData.parsed_forecast[daytime]["Low"],
+                                                                    "PM Low": 999,
+                                                                    "High": fData.parsed_forecast[daytime]["High"],
+                                                                    "CondCode": [], "Cond": [], "Conditions": []}}
+                        else:
+                            self.forecast[forecastDay] = {locName: {"AM Low": 999,
+                                                                    "PM Low": fData.parsed_forecast[daytime]["Low"],
+                                                                    "High": fData.parsed_forecast[daytime]["High"],
+                                                                    "CondCode": [], "Cond": [], "Conditions": []}}
+
+                        # below checks for extreme weather, rain, and snow
+                        if fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.AllExtreme:
+                            self.extreme = True
+                            condAdd = True
+                        elif fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.AllRain and "Rain" in self.alerts:
+                            self.rain = True
+                            condAdd = True
+                        elif fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.Snow and "Snow" in self.alerts:
+                            self.snow = True
+                            condAdd = True
+                        elif "Full Details" in self.alerts:
+                            condAdd = True
+
+                        if condAdd == True:
+                            self.forecast[forecastDay][locName]["Conditions"].append((forecastTime, fData.parsed_forecast[daytime]["Conditions"]))
 
                 else:
-                    condCodeLast = len(self.forecast[forecastDay][locName]["CondCode"])-1
-                    condLast = len(self.forecast[forecastDay][locName]["Cond"])-1
                     condDescLast = len(self.forecast[forecastDay][locName]["Conditions"])-1
 
-                    if fData.parsed_forecast[daytime]["Low"] < self.forecast[forecastDay][locName]["Low"]:
-                        self.forecast[forecastDay][locName]["Low"] = fData.parsed_forecast[daytime]["Low"]
+                    if fH < 12 and fData.parsed_forecast[daytime]["Low"] < self.forecast[forecastDay][locName]["AM Low"]:
+                        self.forecast[forecastDay][locName]["AM Low"] = fData.parsed_forecast[daytime]["Low"]
                         # below checks for freezing temps
-                        if fData.parsed_forecast[daytime]["Low"] < self.freezingThresh and self.freezing == False:
+                        if fData.parsed_forecast[daytime]["Low"] < self.freezingThresh and self.freezing == False and "Freezing" in self.alerts:
+                            self.freezing = True
+
+                    elif fH >= 12 and fData.parsed_forecast[daytime]["Low"] < self.forecast[forecastDay][locName]["PM Low"]:
+                        self.forecast[forecastDay][locName]["PM Low"] = fData.parsed_forecast[daytime]["Low"]
+                        # below checks for freezing temps
+                        if fData.parsed_forecast[daytime]["Low"] < self.freezingThresh and self.freezing == False and "Freezing" in self.alerts:
                             self.freezing = True
 
                     if fData.parsed_forecast[daytime]["High"] > self.forecast[forecastDay][locName]["High"]:
                         self.forecast[forecastDay][locName]["High"] = fData.parsed_forecast[daytime]["High"]
 
-                    if fData.parsed_forecast[daytime]["CondCode"] != self.forecast[forecastDay][locName]["CondCode"][condCodeLast][1]:
-                        self.forecast[forecastDay][locName]["CondCode"].append((forecastTime, fData.parsed_forecast[daytime]["CondCode"]))
+                    # below checks for extreme weather, rain, snow,
+                    if fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.AllExtreme:
+                        self.extreme = True
+                        condAdd = True
+                    elif fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.AllRain and "RAIN" in self.alerts:
+                        self.rain = True
+                        condAdd = True
+                    elif fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.Snow and "SNOW" in self.alerts:
+                        self.snow = True
+                        condAdd = True
+                    elif "FULL DETAILS" in self.alerts:
+                        condAdd = True
+                    else:
+                        continue
 
-                        # below checks for extreme weather, rain, and snow
-                        if fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.AllExtreme:
-                            self.extreme = True
-                        elif fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.AllRain:
-                            self.rain = True
-                        elif fData.parsed_forecast[daytime]["CondCode"] in possibleConditions.Snow:
-                            self.snow = True
-
-                    if fData.parsed_forecast[daytime]["Cond"] != self.forecast[forecastDay][locName]["Cond"][condLast][1]:
-                        self.forecast[forecastDay][locName]["Cond"].append((forecastTime, fData.parsed_forecast[daytime]["Cond"]))
-                    if fData.parsed_forecast[daytime]["Conditions"] != self.forecast[forecastDay][locName]["Conditions"][condDescLast][1]:
+                    if fData.parsed_forecast[daytime]["Conditions"] != self.forecast[forecastDay][locName]["Conditions"][condDescLast][1] and condAdd == True:
                         self.forecast[forecastDay][locName]["Conditions"].append((forecastTime, fData.parsed_forecast[daytime]["Conditions"]))
 
 
@@ -216,15 +257,25 @@ class Person:
             self.email_body = self.email_body + d + "\r\n"
             for l in self.forecast[d]:
                 self.email_body = self.email_body + "==" + l + "==\r\n"
-                for item in self.forecast[d][l]:
-                    if item == "CondCode" or item == "Cond":
-                        continue
-                    elif type(self.forecast[d][l][item]) is list:
-                        self.email_body = self.email_body + "  " + item + ":\r\n"
-                        for i in range(len(self.forecast[d][l][item])):
-                            self.email_body = self.email_body + "   - " + str(self.forecast[d][l][item][i]) + "\r\n"
-                    else:
-                        self.email_body = self.email_body + "  " + item + ": " + str(self.forecast[d][l][item]) + "\r\n"
+                if "PROJECTED LOWS" in self.alerts:
+                    if self.forecast[d][l]["AM Low"] < 999:
+                        self.email_body = self.email_body + "  AM Low: " + str(self.forecast[d][l]["AM Low"]) + "\r\n"
+                    if self.forecast[d][l]["PM Low"] < 999:
+                        self.email_body = self.email_body + "  PM Low: " + str(self.forecast[d][l]["PM Low"]) + "\r\n"
+                elif self.freezing == True:
+                    if self.forecast[d][l]["AM Low"] < self.freezingThresh:
+                        self.email_body = self.email_body + "  AM Low: " + str(self.forecast[d][l]["AM Low"]) + "\r\n"
+                    if self.forecast[d][l]["PM Low"] < self.freezingThresh:
+                        self.email_body = self.email_body + "  PM Low: " + str(self.forecast[d][l]["PM Low"]) + "\r\n"
+
+                if "PROJECTED HIGHS" in self.alerts:
+                    self.email_body = self.email_body + "  High: " + str(self.forecast[d][l]["High"]) + "\r\n"
+
+                if len(self.forecast[d][l]["Conditions"]) > 0:
+                    self.email_body = self.email_body + "  Conditions:\r\n"
+                    for t in self.forecast[d][l]["Conditions"]:
+                        self.email_body = self.email_body + "  - " + str(self.forecast[d][l]["Conditions"][t][0]) + ": " + self.forecast[d][l]["Conditions"][t][1] + "\r\n"
+
             self.email_body = self.email_body + "\r\n"
         if self.extreme == True:
             self.email_subj = "EXTREME WEATHER ALERT"

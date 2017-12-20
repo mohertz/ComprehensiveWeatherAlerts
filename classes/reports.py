@@ -213,7 +213,7 @@ class Person:
                             self.forecast[forecastDay][locName]["Conditions"].append((forecastTime, fData.parsed_forecast[daytime]["Conditions"]))
 
                 else:
-                    condDescLast = len(self.forecast[forecastDay][locName]["Conditions"])-1
+
 
                     if fH < 12 and fData.parsed_forecast[daytime]["Low"] < self.forecast[forecastDay][locName]["AM Low"]:
                         self.forecast[forecastDay][locName]["AM Low"] = fData.parsed_forecast[daytime]["Low"]
@@ -245,7 +245,16 @@ class Person:
                     else:
                         continue
 
-                    if fData.parsed_forecast[daytime]["Conditions"] != self.forecast[forecastDay][locName]["Conditions"][condDescLast][1] and condAdd == True:
+
+                    # since not all conditions are added to the personalized forecast
+                    # we need to make sure we don't hit an index out of range error
+                    condsI = len(self.forecast[forecastDay][locName]["Conditions"]) - 1
+                    if condsI < 0:
+                        conditionlast = None
+                    else:
+                        conditionlast = self.forecast[forecastDay][locName]["Conditions"][condsI][1]
+
+                    if fData.parsed_forecast[daytime]["Conditions"] != conditionlast and condAdd == True:
                         self.forecast[forecastDay][locName]["Conditions"].append((forecastTime, fData.parsed_forecast[daytime]["Conditions"]))
 
 
@@ -273,7 +282,7 @@ class Person:
 
                 if len(self.forecast[d][l]["Conditions"]) > 0:
                     self.email_body = self.email_body + "  Conditions:\r\n"
-                    for t in self.forecast[d][l]["Conditions"]:
+                    for t in range(len(self.forecast[d][l]["Conditions"])):
                         self.email_body = self.email_body + "  - " + str(self.forecast[d][l]["Conditions"][t][0]) + ": " + self.forecast[d][l]["Conditions"][t][1] + "\r\n"
 
             self.email_body = self.email_body + "\r\n"

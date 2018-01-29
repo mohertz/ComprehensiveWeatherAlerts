@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% load i18n %}
+
+{% block content %}
+<h1>&nbsp;</h1>
+<p>{% trans "I started this project because I needed a way to get an automatic alert for things most weather apps wouldn't alert me for." %}</p>
+<h2>FAQ</h2>
+<h4>{% trans "Can I get a forecast for a city outside the USA?" %}</h4>
+<p>{% trans "Due to project constraints, only US cities are currently supported. I plan on adding international options, including timezones, in the future." %}</p>
+<h4>{% trans "Can I get my forecast sent as a text message?" %}</h4>
+<p>{% trans "Yes! The way to set this up is to first find out what your sms email address is. You can do this by sending a text message to your own email address. Then just use that email address in your account. Make sure to follow the confirmation link on your phone the same way you would on a computer so you can receive your forecasts." %}</p>
+<p><b>{% trans "Warning" %}:</b> {% trans "Your carrier's data rates and limitations will still apply. Due to the format of the email, you may get several text messages when your forecast is sent. I recommend limiting your forecast to only 1 day if it's being sent as a text." %}</p>
+{% endblock %}

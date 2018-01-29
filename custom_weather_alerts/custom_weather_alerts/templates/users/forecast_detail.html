@@ -1,0 +1,16 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}{% trans "Forecast" %}{% endblock %}
+
+{% block inner %}
+<h1>{% trans 'Forecast Details' %}</h1>
+<form action="" method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Update" />
+</form>
+
+
+{% endblock %}

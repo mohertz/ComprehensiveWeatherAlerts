@@ -1,0 +1,38 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans 'Forecasts' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row"><a class="btn btn-primary" href="{% url 'forecasts:NewForecast' %}" role="button">New Forecast Profile</a></div>
+  <div class="row">
+    <h2>{% trans 'Your Active Forecasts' %}</h2>
+  </div>
+  <div class="row">
+    <div class="list-group">
+
+      {% for ForecastProfile in object_list %}
+      <h4 class="list-group-item-heading">{{ForecastProfile.nickname}}</h4>
+      <ul>
+        <li><b>Locations:</b> {{ForecastProfile.locations}}</li>
+        <li><b>Timezone:</b> {{ForecastProfile.timezone}}</li>
+        <li><b>Timespan:</b> {{ForecastProfile.start_time}} - {{ForecastProfile.end_time}}</li>
+        <li><b>Alerts:</b> {{ForecastProfile.alerts}}</li>
+        <li><b>Number of Days in Forecast:</b> {{ForecastProfile.days_in_forecast}}</li>
+      </ul>
+      <form action="{% url 'forecasts:SendForecastNow' ForecastProfile.id %}" method="get">
+        <button type="submit" class="btn btn-primary" value="{{ForecastProfile.id}}" name="SendForecast">Send Forecast Now</button>
+      </form>
+      <form action="{% url 'forecasts:ForecastDelete' ForecastProfile.id %}" method="post">
+        {% csrf_token %}
+        <input type="submit" value="Delete Forecast">
+      </form>
+      {% endfor %}
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}

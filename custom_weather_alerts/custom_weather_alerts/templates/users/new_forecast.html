@@ -1,0 +1,24 @@
+{% extends "account/base.html" %}
+
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}{% trans "Add a New Forecast" %}{% endblock %}
+
+{% block inner %}
+<h1>{% trans 'New Forecast' %}</h1>
+
+{% if user.emailaddress_set.all %}
+
+<form action="" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Submit" />
+</form>
+
+{% else %}
+<p><strong>{% trans 'Warning:'%}</strong> {% trans "You currently do not have a verified e-mail address. You cannot receive Custom Weather Alerts without a verified email address." %}</p>
+
+{% endif %}
+
+{% endblock %}

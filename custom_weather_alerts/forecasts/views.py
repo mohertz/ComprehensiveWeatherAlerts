@@ -15,7 +15,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import ForecastProfile
 from .forms import *
 
-# Create your views here.
+
 class UserForecasts(LoginRequiredMixin, ListView):
     model = ForecastProfile
     template_name = 'users/user_forecasts.html'
@@ -56,16 +56,6 @@ class ForecastDelete(LoginRequiredMixin, DeleteView):
         if request.method == 'POST':
             forecast.delete()
             return redirect('/forecasts')
-
-def RunForecastNow(request,pk):
-    if request.method == 'GET':
-        forecast_id = request.GET.get('id')
-
-    if forecast_id:
-        forecast = ForecastProfile.objects.get(id=int(forecast_id))
-        forecast.CheckForecast()
-
-    return redirect('/forecasts')
 
 
 class SendForecastNow(LoginRequiredMixin, DetailView):

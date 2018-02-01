@@ -238,7 +238,7 @@ class ForecastProfile(models.Model):
             email_body = email_body + "\r\n"
 
         email_body = email_body + email_footer
-        email = ForecastEmail.objects.create(profile=self.id, recipient=self.userid, subj=email_subj, body=email_body, status='PENDING')
+        email = ForecastEmail.objects.create(profile=self, recipient=self.userid, subj=email_subj, body=email_body, status='PENDING')
         email.save()
         email.SendEmail()
 

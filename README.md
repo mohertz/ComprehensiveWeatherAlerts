@@ -12,28 +12,9 @@ You will need an API key from OpenWeatherMap.org. This will enable you to check 
 
 You will also need the SMTP information for the email address you'd like to use to send the alerts.
 
-### Installing
+### UPDATE
 
-First, run setup.py to initialize your database.
-
-Add your OpenWeatherMap API key and SMTP information to the appropriate places in SAMPLEconfigInfo.py and rename the file to configInfo.py.
-
-If you'd like a table of all the OpenWeatherMap locations, run allLocations.py to create and fill that table.
-
-## Adding Users
-
-You can add a user to the users table by running newUser.py and adding the appropriate information.
-If the user has multiple email addresses they want the same forecast sent to, separate the email addresses by a ",".
-
-Locations should be either a zip code or a city ID from OpenWeatherMap. The program has logic to tell these two apart and use the appropriate pull request.
-If the user has multiple locations they want forecast data for, separate the locations by a ",".
-
-The "hours" setting is for the timeframe a user wants their forecast to include. Some users will only care about the times when they are going to be awake and possibly out of the house. Others will want a full forecast.
-If the user wants a full forecast, leave this blank and the program will interpret that as a full forecast.
-
-## Deployment
-
-Once you have users in the database, you can run main.py on a regular basis (once a day is probably the most frequent you'd want) to send regular forecast updates.
+The Previous information for this program is no longer valid. A new write-up of the readme is coming!
 
 ## Authors
 

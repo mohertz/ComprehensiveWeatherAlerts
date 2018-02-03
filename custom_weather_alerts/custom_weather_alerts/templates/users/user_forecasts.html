@@ -6,32 +6,76 @@
 
 {% block content %}
 <div class="container">
-  <div class="row"><a class="btn btn-primary" href="{% url 'forecasts:NewForecast' %}" role="button">New Forecast Profile</a></div>
-  <div class="row">
-    <h2>{% trans 'Your Active Forecasts' %}</h2>
-  </div>
-  <div class="row">
-    <div class="list-group">
+
+  <div class="row m-4">
+    <div class="col-sm"><h2>{% trans 'Your Active Forecasts' %}</h2></div>
+    <div class="col-sm"><a class="btn btn-primary" href="{% url 'forecasts:NewForecast' %}" role="button">New Forecast Profile</a></div>
+    </div>
+
+  <div class="card-columns">
 
       {% for ForecastProfile in object_list %}
-      <h4 class="list-group-item-heading">{{ForecastProfile.nickname}}</h4>
-      <ul>
-        <li><b>Locations:</b> {{ForecastProfile.locations}}</li>
-        <li><b>Timezone:</b> {{ForecastProfile.timezone}}</li>
-        <li><b>Timespan:</b> {{ForecastProfile.start_time}} - {{ForecastProfile.end_time}}</li>
-        <li><b>Alerts:</b> {{ForecastProfile.alerts}}</li>
-        <li><b>Number of Days in Forecast:</b> {{ForecastProfile.days_in_forecast}}</li>
-      </ul>
-      <form action="{% url 'forecasts:SendForecastNow' ForecastProfile.id %}" method="get">
-        <button type="submit" class="btn btn-primary" value="{{ForecastProfile.id}}" name="SendForecast">Send Forecast Now</button>
-      </form>
-      <form action="{% url 'forecasts:ForecastDelete' ForecastProfile.id %}" method="post">
-        {% csrf_token %}
-        <input type="submit" value="Delete Forecast">
-      </form>
+
+      <div class="card border-info">
+        <div class="card-header">{{ForecastProfile.nickname}}</div>
+        <ul class="list-group list-group-inline">
+          <li class="list-group-item"><b>Locations:</b> {{ForecastProfile.locations}}</li>
+          <li class="list-group-item"><b>Timezone:</b> {{ForecastProfile.timezone}}</li>
+          <li class="list-group-item"><b>Timespan:</b>
+            {% if ForecastProfile.start_time == 0 %}
+            12 am
+            {% elif ForecastProfile.start_time < 12 %}
+            {{ForecastProfile.start_time}} am
+            {% elif ForecastProfile.start_time == 12 %}
+            {{ ForecastProfile.start_time }} pm
+            {% else %}
+            {{ ForecastProfile.start_time|add:"-12" }} pm
+            {% endif %}
+            -
+            {% if ForecastProfile.end_time < 12 %}
+            {{ForecastProfile.end_time}} am
+            {% elif ForecastProfile.end_time == 12 %}
+            {{ ForecastProfile.end_time }} pm
+            {% else %}
+            {{ ForecastProfile.end_time|add:"-12" }} pm
+            {% endif %}
+          </li>
+          <!-- THIS COULD BE BETTER, BUT IT WILL DO -->
+          <li class="list-group-item"><b>Alerts:</b>
+            {% if 'A' in ForecastProfile.alerts %}
+            All Details,
+            {% endif %}
+            {% if 'L' in ForecastProfile.alerts %}
+            Projected Lows,
+            {% endif %}
+            {% if 'H' in ForecastProfile.alerts %}
+            Projected Highs,
+            {% endif %}
+            {% if 'F' in ForecastProfile.alerts %}
+            Freezing,
+            {% endif %}
+            {% if 'R' in ForecastProfile.alerts %}
+            Rain,
+            {% endif %}
+            {% if 'S' in ForecastProfile.alerts %}
+            Snow
+            {% endif %}
+          </li>
+          <li class="list-group-item"><b>Forecast Length:</b> {{ForecastProfile.days_in_forecast}} days</li>
+        </ul>
+        <div class="card-footer text-center">
+          <form action="{% url 'forecasts:SendForecastNow' ForecastProfile.id %}" method="get">
+            <button type="submit" class="btn btn-primary" value="{{ForecastProfile.id}}" name="SendForecast">Send Forecast Now</button>
+          </form>
+          <form action="{% url 'forecasts:ForecastDelete' ForecastProfile.id %}" method="post">
+            {% csrf_token %}
+            <input type="submit" class="btn btn-danger" value="Delete Forecast">
+          </form>
+        </div>
+      </div>
+
       {% endfor %}
 
-    </div>
   </div>
 </div>
 

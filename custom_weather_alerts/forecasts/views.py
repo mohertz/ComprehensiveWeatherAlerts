@@ -1,9 +1,5 @@
 from django.shortcuts import render
-from django.core.urlresolvers import reverse
-from django.core import validators
-from django.views import View
-from django.views.generic import DetailView, ListView, RedirectView, UpdateView, CreateView, DeleteView, FormView
-from django.views.generic.edit import SingleObjectMixin
+from django.views.generic import DetailView, ListView, CreateView, DeleteView
 from django.http import HttpResponseRedirect
 from django import forms
 from django.shortcuts import get_object_or_404, redirect
@@ -30,7 +26,7 @@ class NewForecast(LoginRequiredMixin, CreateView):
     template_name = 'users/new_forecast.html'
 
     def get(self, request, *args, **kwargs):
-        form = self.form_class(initial={'timezone': request.user.dtz, 'days_in_forecast': request.user.dday})
+        form = self.form_class(initial={'nickname':(request.user.username + str(ForecastProfile.objects.filter(userid_id=self.request.user).count() + 1)), 'timezone': request.user.dtz, 'days_in_forecast': request.user.dday, 'start_time': 0, 'end_time': 23})
         return render(request, self.template_name, {'form': form})
 
     def post(self, request, *args, **kwargs):

@@ -14,7 +14,6 @@ from custom_weather_alerts.users.models import User
 from . import possibleConditions
 
 
-# Create your models here.
 class ForecastProfile(models.Model):
     userid = models.ForeignKey(User, on_delete=models.CASCADE)
     nickname = models.CharField(_('Forecast Nickname'), max_length=25)

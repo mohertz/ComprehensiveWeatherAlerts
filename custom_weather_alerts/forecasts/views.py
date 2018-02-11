@@ -31,7 +31,11 @@ class NewForecast(LoginRequiredMixin, CreateView):
     template_name = 'users/new_forecast.html'
 
     def get(self, request, *args, **kwargs):
-        form = self.form_class(initial={'nickname':(request.user.username + str(ForecastProfile.objects.filter(userid_id=self.request.user).count() + 1)), 'timezone': request.user.dtz, 'days_in_forecast': request.user.dday, 'start_time': 0, 'end_time': 23})
+        form = self.form_class(initial={'nickname':(request.user.username + str(ForecastProfile.objects.filter(userid_id=self.request.user).count() + 1)), 'timezone': request.user.dtz, 'days_in_forecast': request.user.dday, 'start_time': 0, 'end_time': 23, 'locations': [' ',' ',' ']})
+        # Initial value of single space for each location field prevents incomplete validation error
+        # and doesn't trip regex validator.
+        # Even with single space in first field, it still requires input in that first field!
+
         return render(request, self.template_name, {'form': form})
 
     def post(self, request, *args, **kwargs):

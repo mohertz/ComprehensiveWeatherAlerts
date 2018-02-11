@@ -6,57 +6,56 @@ from .models import ForecastProfile
 from . import choices
 
 
-# COULDN'T MAKE THIS WORK WITHOUT IT REQUIRING ALL THREE FIELDS INSTEAD OF JUST ONE
-# class ThreeNumFields(forms.MultiWidget):
-#     def __init__(self, attrs=None):
-#         self.widgets = [
-#             forms.TextInput(),
-#             forms.TextInput(),
-#             forms.TextInput()
-#         ]
-#         super().__init__(self.widgets, attrs)
-#
-#     def decompress(self, value):
-#         if value:
-#             return value.split(' ')
-#         return [None, None]
-#
-#
-# class LocationMultiField(forms.MultiValueField):
-#     widget = ThreeNumFields()
-#     validators = [RegexValidator]
-#
-#     def __init__(self):
-#         fields = (
-#             forms.CharField(
-#                 error_messages={'incomplete': 'Please enter at least one valid zip code.'},
-#                 validators=[
-#                     RegexValidator(r'^[0-9]+$', 'Enter a valid US zip code.'),
-#                 ],
-#                 max_length=5,
-#             ),
-#             forms.CharField(
-#                 required=False,
-#                 validators=[
-#                     RegexValidator(r'^[0-9]+$', 'Enter a valid US zip code.'),
-#                 ],
-#                 max_length=5,
-#             ),
-#             forms.CharField(
-#                 required=False,
-#                 validators=[
-#                     RegexValidator(r'^[0-9]+$', 'Enter a valid US zip code.'),
-#                 ],
-#                 max_length=5,
-#             )
-#         )
-#         super(LocationMultiField, self).__init__(
-#             fields=fields,
-#             require_all_fields=False
-#         )
-#
-#     def compress(self, data_list):
-#         return ' '.join(data_list)
+class ThreeNumFields(forms.MultiWidget):
+    def __init__(self, attrs=None):
+        self.widgets = [
+            forms.TextInput(),
+            forms.TextInput(),
+            forms.TextInput()
+        ]
+        super().__init__(self.widgets, attrs)
+
+    def decompress(self, value):
+        if value:
+            return value.split(' ')
+        return [None, None, None]
+
+
+class LocationMultiField(forms.MultiValueField):
+    widget = ThreeNumFields()
+    validators = [RegexValidator]
+
+    def __init__(self):
+        fields = (
+            forms.CharField(
+                error_messages={'incomplete': 'Please enter at least one valid zip code.'},
+                validators=[
+                    RegexValidator(r'^[0-9]{5}$', 'Enter a valid US zip code.'),
+                ],
+                max_length=5,
+            ),
+            forms.CharField(
+                required=False,
+                validators=[
+                    RegexValidator(r'^[0-9]{5}$', 'Enter a valid US zip code.'),
+                ],
+                max_length=5,
+            ),
+            forms.CharField(
+                required=False,
+                validators=[
+                    RegexValidator(r'^[0-9]{5}$', 'Enter a valid US zip code.'),
+                ],
+                max_length=5,
+            )
+        )
+        super(LocationMultiField, self).__init__(
+            fields=fields,
+            require_all_fields=False,
+        )
+
+    def compress(self, data_list):
+        return ' '.join(data_list)
 
 
 class NewForecastForm(forms.ModelForm):
@@ -67,10 +66,7 @@ class NewForecastForm(forms.ModelForm):
     nickname = forms.CharField(
         label=_('Forecast Nickname')
     )
-    locations = forms.CharField(
-        label=_('Location zip code(s)'),
-        help_text=_('(If you want multiple locations, separate them by a space.')
-    )
+    locations = LocationMultiField()
     timezone = forms.ChoiceField(
         label=_('Timezone for your forecast'),
         choices=choices.timezones
@@ -93,3 +89,12 @@ class NewForecastForm(forms.ModelForm):
         choices=choices.forecastdays
     )
 
+    def clean(self):
+        cleaned_data = super(NewForecastForm, self).clean()
+        start = cleaned_data.get("start_time")
+        end = cleaned_data.get("end_time")
+
+        if start > end:
+            raise forms.ValidationError(
+                "Your start time must be before your end time."
+            )

@@ -2,6 +2,17 @@ import csv
 from config.settings.base import ROOT_DIR
 
 
+readable = {
+    "Alerts":{
+        "F":'Freezing',
+        "L":'Projected Lows',
+        "H":'Projected Highs',
+        "R":'Rain',
+        "S":'Snow',
+        "A":'Full Forecast'
+    }
+}
+
 timezones = [
     ('US/Alaska','US/Alaska'),
     ('US/Arizona','US/Arizona'),

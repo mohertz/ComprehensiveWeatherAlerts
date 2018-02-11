@@ -113,7 +113,7 @@ MANAGERS = ADMINS
 # See: https://django-environ.readthedocs.io/en/latest/#supported-types
 DATABASES = {
     'default': {'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': 'wadata.sqlite3',},
+                'NAME': str(ROOT_DIR('wadata.sqlite3')),},
 }
 DATABASES['default']['ATOMIC_REQUESTS'] = True
 

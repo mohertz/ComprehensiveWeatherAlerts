@@ -290,8 +290,8 @@ class ForecastData(models.Model):
 
 
 class ForecastEmail(models.Model):
-    profile = models.ForeignKey(ForecastProfile, on_delete=models.SET('DELETED PROFILE'))
-    recipient = models.ForeignKey(User, on_delete=models.SET('DELETED USER'))
+    profile = models.ForeignKey(ForecastProfile, on_delete=models.SET_NULL, null=True)
+    recipient = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     subj = models.CharField(max_length=125)
     body = models.TextField()
     dt_created = models.DateTimeField(auto_now_add=True)

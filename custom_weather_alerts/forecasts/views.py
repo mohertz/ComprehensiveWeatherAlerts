@@ -1,5 +1,10 @@
 from django.shortcuts import render
-from django.views.generic import DetailView, ListView, CreateView, DeleteView
+from django.core.urlresolvers import reverse
+from django.urls import reverse_lazy
+from django.core import validators
+from django.views import View
+from django.views.generic import DetailView, ListView, RedirectView, UpdateView, CreateView, DeleteView, FormView
+from django.views.generic.edit import SingleObjectMixin
 from django.http import HttpResponseRedirect
 from django import forms
 from django.shortcuts import get_object_or_404, redirect
@@ -37,21 +42,21 @@ class NewForecast(LoginRequiredMixin, CreateView):
             f.userid = request.user
             f.save()
 
-            return HttpResponseRedirect('/forecasts')
+            return redirect('forecasts:list')
 
         return render(request, self.template_name, {'form': form})
 
 
 class ForecastDelete(LoginRequiredMixin, DeleteView):
     model = ForecastProfile
-    success_url = '/forecasts'
+    success_url = reverse_lazy('forecasts:list')
 
     def get(self, request, *args, **kwargs):
         forecast = get_object_or_404(ForecastProfile, pk=pk)
 
         if request.method == 'POST':
             forecast.delete()
-            return redirect('/forecasts')
+            return redirect('forecasts:list')
 
 
 class SendForecastNow(LoginRequiredMixin, DetailView):
@@ -61,4 +66,4 @@ class SendForecastNow(LoginRequiredMixin, DetailView):
 
         if request.method == 'GET':
             forecast.CheckForecast()
-            return redirect('/forecasts')
+            return redirect('forecasts:list')
